@@ -1,0 +1,9 @@
+[video]
+src_type = "v4l"
+source = "0"
+
+[command]
+default = "record"
+
+[backend]
+url = "https://backend.address"

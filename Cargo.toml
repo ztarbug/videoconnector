@@ -1,0 +1,16 @@
+[package]
+name = "videoconnector"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+v4l = "0.13.1"
+image = "0.24.5"
+
+tokio = { version = "1.23.0", features = ["full"] }
+
+toml = "0.5.2"
+serde = "1.0.136"
+serde_derive = "1.0.136"
