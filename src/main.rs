@@ -17,15 +17,8 @@ use v4l::Device;
 async fn main() -> io::Result<()> {
     let params:Vec<String> = env::args().collect();
     dbg!(&params);
-    let config_file_path = params.get(1);
-    /*
-    match config_file_path {
-        None => parse_config(""),
-        Some(path) => parse_config(path),
-    }*/
-    dbg!(&config_file_path);
 
-    let config = parse_config(&config_file_path.unwrap());
+    let config = parse_config(params.get(1));
     println!("loaded config {}", config.video.source);
 
     let mut dev = Device::new(0).expect("Failed to open device");
