@@ -1,34 +1,36 @@
 use std::io;
+use std::env;
 
 #[path = "config/config.rs"]
 mod config;
 use crate::config::config::parse_config;
 
+#[path = "v4l/v4l_capture.rs"]
+mod v4l_capture;
 
 use v4l::buffer::Type;
 use v4l::io::mmap::Stream;
 use v4l::io::traits::CaptureStream;
-use v4l::video::Capture;
 use v4l::Device;
-use v4l::FourCC;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
+    let params:Vec<String> = env::args().collect();
+    dbg!(&params);
+    let config_file_path = params.get(1);
+    /*
+    match config_file_path {
+        None => parse_config(""),
+        Some(path) => parse_config(path),
+    }*/
+    dbg!(&config_file_path);
 
-    let config = parse_config();
+    let config = parse_config(&config_file_path.unwrap());
     println!("loaded config {}", config.video.source);
 
     let mut dev = Device::new(0).expect("Failed to open device");
 
-    let mut fmt = dev.format().expect("Failed to read format");
-    fmt.width = 1920;
-    fmt.height = 1080;
-    fmt.fourcc = FourCC::new(b"MJPG");
-    dev.set_format(&fmt).expect("Failed to write format");
-
-    println!("Format in use:\n{}", fmt);
-
-    get_cam_details(&dev);
+    v4l_capture::print_cam_details(&dev);
 
     let mut stream = Stream::with_buffers(&mut dev, Type::VideoCapture, 4)
         .expect("Failed to create buffer stream");
@@ -43,35 +45,6 @@ async fn main() -> io::Result<()> {
     write_image(&buf).await;
 
     Ok(())
-}
-
-fn get_cam_details(dev:&Device) {
-
-    let params = dev.params().expect("Couldn't get params");
-    println!("Active parameters:\n{}", params); 
-
-    println!("Available formats:");
-
-    let format_description = dev.enum_formats().expect("Can't get device supported format");
-
-    for format in format_description {
-        println!("  {} ({})", format.fourcc, format.description);
-
-        for framesize in dev.enum_framesizes(format.fourcc)
-            .expect("Can't get framesizes") {
-            for discrete in framesize.size.to_discrete() {
-                println!("    Size: {}", discrete);
-                for frameinterval in
-                    dev.enum_frameintervals(framesize.fourcc, discrete.width, discrete.height)
-                        .expect("Can't load frame intervals")
-                {
-                    println!("      Interval:  {}", frameinterval);
-                }
-            }
-        }
-        println!()
-    }
-
 }
 
 async fn write_image(buf: &[u8]) {

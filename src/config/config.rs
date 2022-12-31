@@ -1,7 +1,3 @@
-
-
-
-
 pub mod config {
     use serde_derive::Deserialize;
     use toml;
@@ -20,12 +16,18 @@ pub mod config {
     }
 
     #[derive(Deserialize)]
+    pub struct Misc {
+        pub log_level: String,
+    }
+
+    #[derive(Deserialize)]
     pub struct Data {
         pub video: Video,
         pub command: Command,
+        pub misc: Misc
     }
 
-    pub fn parse_config() -> Data {
+    pub fn parse_config(config_file_path:&str) -> Data {
         println!("parsing config...");
         let filename = get_config_file_location();
 
@@ -59,6 +61,7 @@ pub mod config {
     }
 
     fn get_config_file_location() -> String {
+        /*Location rules: same folder, subfolder config, /etc/videoconnector/config.toml */
         return String::from("sample_config/config.toml");
     }
 }
