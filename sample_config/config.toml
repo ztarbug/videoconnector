@@ -7,3 +7,6 @@ default = "record"
 
 [backend]
 url = "https://backend.address"
+
+[misc]
+log_level = "DEBUG"

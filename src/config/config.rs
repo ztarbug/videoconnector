@@ -1,33 +1,40 @@
-
-
-
-
 pub mod config {
     use serde_derive::Deserialize;
     use toml;
     use std::fs;
     use std::process::exit;
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Clone)]
     pub struct Video {
         pub src_type: String,
         pub source: String,
     }
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Clone)]
     pub struct Command {
         pub default: String,
     }
 
-    #[derive(Deserialize)]
-    pub struct Data {
-        pub video: Video,
-        pub command: Command,
+    #[derive(Deserialize, Clone)]
+    pub struct Misc {
+        pub log_level: String,
     }
 
-    pub fn parse_config() -> Data {
+    #[derive(Deserialize, Clone)]
+    pub struct ConfigData {
+        pub video: Video,
+        pub command: Command,
+        pub misc: Misc
+    }
+
+    pub fn parse_config(file_path:Option<&String>) -> ConfigData {
+        let filename:String;
+
+        match file_path {
+            None => filename = get_config_file_location(),
+            Some(file_path) => filename = file_path.clone(),
+        }
         println!("parsing config...");
-        let filename = get_config_file_location();
 
         let content = match fs::read_to_string(&filename) {
             // If successful return the files text as `contents`.
@@ -41,7 +48,7 @@ pub mod config {
                 exit(1);
             }
         };
-        let config_data: Data = match toml::from_str(&content) {
+        let config_data: ConfigData = match toml::from_str(&content) {
             // If successful, return data as `Data` struct.
             // `d` is a local variable.
             Ok(d) => d,
@@ -59,6 +66,27 @@ pub mod config {
     }
 
     fn get_config_file_location() -> String {
-        return String::from("sample_config/config.toml");
+        /*Location rules: same folder, subfolder config */
+        let mut config_in_current_dir = std::env::current_dir().unwrap();
+        config_in_current_dir.push("config.toml");
+        println!("Try to load config from: {}", &config_in_current_dir.display());
+        
+        let b = std::path::Path::new(&config_in_current_dir).exists();
+        if b {
+            return config_in_current_dir.into_os_string().into_string().unwrap();
+        }
+
+        let mut config_in_current_dir = std::env::current_dir().unwrap();
+        config_in_current_dir.push("config");
+        config_in_current_dir.push("config.toml");
+        println!("Try to load config from: {}", &config_in_current_dir.display());
+
+        let b = std::path::Path::new(&config_in_current_dir).exists();
+        if b {
+            return config_in_current_dir.into_os_string().into_string().unwrap();
+        }
+
+        println!("couldn't find config file, aborting.");
+        exit(1);
     }
 }
