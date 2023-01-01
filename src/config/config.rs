@@ -4,30 +4,30 @@ pub mod config {
     use std::fs;
     use std::process::exit;
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Clone)]
     pub struct Video {
         pub src_type: String,
         pub source: String,
     }
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Clone)]
     pub struct Command {
         pub default: String,
     }
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Clone)]
     pub struct Misc {
         pub log_level: String,
     }
 
-    #[derive(Deserialize)]
-    pub struct Data {
+    #[derive(Deserialize, Clone)]
+    pub struct ConfigData {
         pub video: Video,
         pub command: Command,
         pub misc: Misc
     }
 
-    pub fn parse_config(file_path:Option<&String>) -> Data {
+    pub fn parse_config(file_path:Option<&String>) -> ConfigData {
         let filename:String;
 
         match file_path {
@@ -48,7 +48,7 @@ pub mod config {
                 exit(1);
             }
         };
-        let config_data: Data = match toml::from_str(&content) {
+        let config_data: ConfigData = match toml::from_str(&content) {
             // If successful, return data as `Data` struct.
             // `d` is a local variable.
             Ok(d) => d,
