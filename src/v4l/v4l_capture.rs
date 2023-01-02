@@ -14,10 +14,9 @@ pub struct V4LDevice {
 
 impl V4LDevice {
     pub fn new(conf:ConfigData) -> Self {
-        let device_string = &conf.video.source;
-        let device_number: usize = device_string.parse().unwrap();
+        let device_id = conf.video.source.clone();
         Self{
-            device: Device::new(device_number).expect("Failed to open device"),
+            device: Device::new(device_id).expect("Failed to open device"),
             config: conf,
         }
     }

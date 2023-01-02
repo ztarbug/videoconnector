@@ -1,5 +1,5 @@
-use std::io;
 use std::env;
+use tokio::time::Duration;
 
 #[path = "config/config.rs"]
 mod config;
@@ -9,8 +9,12 @@ use crate::config::config::parse_config;
 mod v4l_capture;
 use crate::v4l_capture::V4LDevice;
 
+#[path = "grpc/grpc_connector.rs"]
+mod grpc_connector;
+use crate::grpc_connector::GRPCConnector;
+
 #[tokio::main]
-async fn main() -> io::Result<()> {
+async fn main() {
     let params:Vec<String> = env::args().collect();
     dbg!(&params);
 
@@ -22,5 +26,13 @@ async fn main() -> io::Result<()> {
     v4l_device.print_cam_details();
     v4l_device.save_image().await;
 
-    Ok(())
+
+    let mut grpc_connector: GRPCConnector = GRPCConnector::new(config.clone());
+    grpc_connector.setup_client().await;
+
+    loop {
+        let con = &mut grpc_connector;
+        con.load_commands().await;
+        tokio::time::sleep(Duration::from_millis(300)).await;
+    }
 }

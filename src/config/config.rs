@@ -7,12 +7,17 @@ pub mod config {
     #[derive(Deserialize, Clone)]
     pub struct Video {
         pub src_type: String,
-        pub source: String,
+        pub source: usize,
     }
 
     #[derive(Deserialize, Clone)]
     pub struct Command {
         pub default: String,
+    }
+
+    #[derive(Deserialize, Clone)]
+    pub struct Backend {
+        pub url: String,
     }
 
     #[derive(Deserialize, Clone)]
@@ -24,6 +29,7 @@ pub mod config {
     pub struct ConfigData {
         pub video: Video,
         pub command: Command,
+        pub backend: Backend,
         pub misc: Misc
     }
 
