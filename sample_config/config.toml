@@ -1,12 +1,13 @@
 [video]
 src_type = "v4l"
-source = "0"
+source = 0
 
 [command]
 default = "record"
 
 [backend]
-url = "https://backend.address"
+url = "http://127.0.0.1:50051"
 
 [misc]
-log_level = "DEBUG"
+log_level = "INFO"
+storage_path = "/tmp"

@@ -14,15 +14,22 @@ pub struct V4LDevice {
 
 impl V4LDevice {
     pub fn new(conf:ConfigData) -> Self {
-        let device_string = &conf.video.source;
-        let device_number: usize = device_string.parse().unwrap();
+        let device_id = conf.video.source.clone();
+
+        let dev = Device::new(device_id).expect("Failed to open device");
+        let mut fmt = dev.format().expect("Failed to read format");
+        fmt.width = 1920;
+        fmt.height = 1080;
+        fmt.fourcc = FourCC::new(b"MJPG");
+        dev.set_format(&fmt).expect("Failed to write format"); 
+
         Self{
-            device: Device::new(device_number).expect("Failed to open device"),
+            device: dev,
             config: conf,
-        }
+        }  
     }
 
-    pub async fn save_image(mut self) {
+    pub fn capture_image(&mut self) -> Vec<u8>  {
 
         let mut stream = Stream::with_buffers(&mut self.device, Type::VideoCapture, 4)
             .expect("Failed to create buffer stream");
@@ -35,50 +42,53 @@ impl V4LDevice {
             meta.timestamp
         );
 
-        self.write_image(&buf);
+        if self.config.misc.log_level == "DEBUG" {
+            self.write_image(&buf);
+        }
+        
+        return buf.to_vec();
     }
     
     fn write_image(&self, buf: &[u8]) {
     
         let img = image::load_from_memory(&buf).unwrap();
-        let storage_path = format!("{}.jpg", "/tmp/image");
+        let storage_path = format!("{}/image.jpg", self.config.misc.storage_path);
         img.save(storage_path).expect("Could not write frame");
     }
     
-    pub fn print_cam_details(&self) {
+    pub fn print_cam_details(&self) -> String {
+
+        let mut result = String::new();
     
-        let mut fmt = self.device.format().expect("Failed to read format");
-        fmt.width = 1920;
-        fmt.height = 1080;
-        fmt.fourcc = FourCC::new(b"MJPG");
-        self.device.set_format(&fmt).expect("Failed to write format");
-    
-        println!("Format in use:\n{}", fmt);
+        let fmt = self.device.format().expect("Failed to read format");
+        result.push_str(&format!("Format in use:\n{}", fmt));
     
         let params = self.device.params().expect("Couldn't get params");
-        println!("Active parameters:\n{}", params); 
-    
-        println!("Available formats:");
-    
+        result.push_str(&format!("Active parameters:\n{}", params));
+        result.push_str("Available formats:\n");
         let format_description = self.device.enum_formats().expect("Can't get device supported format");
     
         for format in format_description {
-            println!("  {} ({})", format.fourcc, format.description);
+            result.push_str(&format!("  {} ({})\n", format.fourcc, format.description));
     
             for framesize in self.device.enum_framesizes(format.fourcc)
                 .expect("Can't get framesizes") {
                 for discrete in framesize.size.to_discrete() {
-                    println!("    Size: {}", discrete);
+                    result.push_str(&format!("    Size: {}\n", discrete));
                     for frameinterval in
                     self.device.enum_frameintervals(framesize.fourcc, discrete.width, discrete.height)
                             .expect("Can't load frame intervals")
                     {
-                        println!("      Interval:  {}", frameinterval);
+                        result.push_str(&format!("      Interval:  {}\n", frameinterval));
                     }
                 }
             }
-            println!()
+            result.push_str("\n");
         }
+        if self.config.misc.log_level == "DEBUG" {
+            println!("{}", result);
+        }
+        return result;
     }    
 }
 
