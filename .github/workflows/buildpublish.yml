@@ -18,7 +18,9 @@ jobs:
         run: |
           rustup update
           rustup component add clippy
-          rustup install nightly          
+          rustup install nightly 
+          apt update && apt upgrade -y
+          apt install -y protobuf-compiler libprotobuf-dev         
 
       - name: Toolchain info
         run: |
