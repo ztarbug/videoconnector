@@ -1,8 +1,5 @@
-
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-
-    tonic_build::compile_protos("../videoserver/proto/videoconnector.proto")?;
+    tonic_build::compile_protos("proto/videoconnector.proto")?;
 
     Ok(())
 }

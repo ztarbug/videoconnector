@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package videoconnector;
+
+import "google/protobuf/timestamp.proto";
+
+enum CommandType {
+    NoNew = 0;
+    Stop = 1;
+    Resume = 2;
+    StopAndShutdown = 3;
+    GetImage = 4;
+    GetSourceInfo = 5;
+}
+
+message CommandRequest {
+    google.protobuf.Timestamp clientTimestamp = 1;
+    string connectorHostname = 2;
+}
+
+message CommandList {
+    google.protobuf.Timestamp serverTimestamp = 1;
+    repeated CommandType commands = 2;
+}
+
+message TransferImageRequest {
+    google.protobuf.Timestamp clientTimestamp = 1;
+    int64 camera_id = 2;
+    bytes image = 3;
+}
+
+message ServerAckResponse {
+    google.protobuf.Timestamp serverTimestamp = 1;
+}
+
+message SourceInfoRequest {
+    google.protobuf.Timestamp clientTimestamp = 1;
+    string sourceInfo = 2;
+}
+
+//CameraConnector
+service VideoConnector {
+
+    // get commands for connector
+    rpc GetCommand(CommandRequest) returns (CommandList);
+
+    // get debug info on current video source
+    rpc DeliverSourceInfo(SourceInfoRequest) returns (ServerAckResponse);
+
+    // used to transfer an image
+    rpc TransferImage(TransferImageRequest) returns (ServerAckResponse);
+}
