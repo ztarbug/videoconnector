@@ -42,3 +42,9 @@ jobs:
       - name: Build
         run: |
           cargo build --release
+
+      - name: Archive release binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: videoconnector
+          path: target/release/videoconnector
