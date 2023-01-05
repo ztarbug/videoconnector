@@ -15,30 +15,30 @@ use crate::v4l_capture::V4LDevice;
 
 #[path = "grpc/grpc_connector.rs"]
 mod grpc_connector;
-use crate::grpc_connector::GRPCConnector;
 use crate::grpc_connector::videoconnector::CommandType;
+use crate::grpc_connector::GRPCConnector;
 use crate::grpc_connector::ServerMessage;
 
 #[tokio::main]
 async fn main() {
-    let params:Vec<String> = env::args().collect();
+    let params: Vec<String> = env::args().collect();
     dbg!(&params);
 
     let config = parse_config(params.get(1));
     println!("loaded config {}", config.video.source);
-    
+
     let mut v4l_device = V4LDevice::new(config.clone());
 
     let (tx, rx) = mpsc::channel();
     let (tx_server_messages, rx_server_messages) = mpsc::channel();
 
     thread::spawn(move || {
-        let mut command_list:VecDeque<CommandType> = VecDeque::new();
+        let mut command_list: VecDeque<CommandType> = VecDeque::new();
 
         loop {
             println!("next loop in cmd execution thread");
             dbg!(&command_list);
-            let commands:Vec<CommandType> = rx.recv().unwrap();
+            let commands: Vec<CommandType> = rx.recv().unwrap();
             for c in commands.iter() {
                 command_list.push_back(c.clone());
             }
@@ -53,16 +53,22 @@ async fn main() {
                     CommandType::GetImage => {
                         println!("getting new image");
                         let image = &v4l_device.capture_image();
-                        let image_string =String::from_utf8_lossy(image);
-                        let sm = ServerMessage{command: cmd, content:image_string.to_string()};
+                        let image_string = String::from_utf8_lossy(image);
+                        let sm = ServerMessage {
+                            command: cmd,
+                            content: image_string.to_string(),
+                        };
                         tx_server_messages.send(sm).unwrap();
-                    },
+                    }
                     CommandType::GetSourceInfo => {
                         let info = v4l_device.print_cam_details();
-                        let sm = ServerMessage{command: cmd, content:info};
+                        let sm = ServerMessage {
+                            command: cmd,
+                            content: info,
+                        };
                         tx_server_messages.send(sm).unwrap();
-                    },
-                }                
+                    }
+                }
             }
 
             thread::sleep(Duration::from_millis(300));
@@ -84,5 +90,4 @@ async fn main() {
         }
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
-
 }

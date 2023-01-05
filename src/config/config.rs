@@ -1,8 +1,8 @@
 pub mod config {
     use serde_derive::Deserialize;
-    use toml;
     use std::fs;
     use std::process::exit;
+    use toml;
 
     #[derive(Deserialize, Clone)]
     pub struct Video {
@@ -31,11 +31,11 @@ pub mod config {
         pub video: Video,
         pub command: Command,
         pub backend: Backend,
-        pub misc: Misc
+        pub misc: Misc,
     }
 
-    pub fn parse_config(file_path:Option<&String>) -> ConfigData {
-        let filename:String;
+    pub fn parse_config(file_path: Option<&String>) -> ConfigData {
+        let filename: String;
 
         match file_path {
             None => filename = get_config_file_location(),
@@ -69,28 +69,39 @@ pub mod config {
         };
 
         config_data
-
     }
 
     fn get_config_file_location() -> String {
         /*Location rules: same folder, subfolder config */
         let mut config_in_current_dir = std::env::current_dir().unwrap();
         config_in_current_dir.push("config.toml");
-        println!("Try to load config from: {}", &config_in_current_dir.display());
-        
+        println!(
+            "Try to load config from: {}",
+            &config_in_current_dir.display()
+        );
+
         let b = std::path::Path::new(&config_in_current_dir).exists();
         if b {
-            return config_in_current_dir.into_os_string().into_string().unwrap();
+            return config_in_current_dir
+                .into_os_string()
+                .into_string()
+                .unwrap();
         }
 
         let mut config_in_current_dir = std::env::current_dir().unwrap();
         config_in_current_dir.push("config");
         config_in_current_dir.push("config.toml");
-        println!("Try to load config from: {}", &config_in_current_dir.display());
+        println!(
+            "Try to load config from: {}",
+            &config_in_current_dir.display()
+        );
 
         let b = std::path::Path::new(&config_in_current_dir).exists();
         if b {
-            return config_in_current_dir.into_os_string().into_string().unwrap();
+            return config_in_current_dir
+                .into_os_string()
+                .into_string()
+                .unwrap();
         }
 
         println!("couldn't find config file, aborting.");
