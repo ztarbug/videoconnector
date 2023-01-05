@@ -5,7 +5,7 @@ use v4l::video::Capture;
 use v4l::Device;
 use v4l::FourCC;
 
-use crate::config::config::ConfigData;
+use crate::config::ConfigData;
 
 pub struct V4LDevice {
     pub device: Device,
@@ -14,7 +14,7 @@ pub struct V4LDevice {
 
 impl V4LDevice {
     pub fn new(conf: ConfigData) -> Self {
-        let device_id = conf.video.source.clone();
+        let device_id = conf.video.source;
 
         let dev = Device::new(device_id).expect("Failed to open device");
         let mut fmt = dev.format().expect("Failed to read format");
@@ -30,7 +30,7 @@ impl V4LDevice {
     }
 
     pub fn capture_image(&mut self) -> Vec<u8> {
-        let mut stream = Stream::with_buffers(&mut self.device, Type::VideoCapture, 4)
+        let mut stream = Stream::with_buffers(&self.device, Type::VideoCapture, 4)
             .expect("Failed to create buffer stream");
 
         let (buf, meta) = stream.next().unwrap();
@@ -42,14 +42,14 @@ impl V4LDevice {
         );
 
         if self.config.misc.log_level == "DEBUG" {
-            self.write_image(&buf);
+            self.write_image(buf);
         }
 
-        return buf.to_vec();
+        buf.to_vec()
     }
 
     fn write_image(&self, buf: &[u8]) {
-        let img = image::load_from_memory(&buf).unwrap();
+        let img = image::load_from_memory(buf).unwrap();
         let storage_path = format!("{}/image.jpg", self.config.misc.storage_path);
         img.save(storage_path).expect("Could not write frame");
     }
@@ -87,11 +87,11 @@ impl V4LDevice {
                     }
                 }
             }
-            result.push_str("\n");
+            result.push('\n');
         }
         if self.config.misc.log_level == "DEBUG" {
             println!("{}", result);
         }
-        return result;
+        result
     }
 }

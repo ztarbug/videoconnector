@@ -1,4 +1,3 @@
-use base64;
 use std::time::SystemTime;
 
 use prost_types::Timestamp;
@@ -6,7 +5,7 @@ use tonic::transport::Channel;
 use videoconnector::CommandList;
 use videoconnector::CommandRequest;
 
-use crate::config::config::ConfigData;
+use crate::config::ConfigData;
 use crate::grpc_connector::videoconnector::video_connector_client::VideoConnectorClient;
 use crate::grpc_connector::videoconnector::CommandType;
 
@@ -68,7 +67,7 @@ impl GRPCConnector {
                     self.active_commands = Vec::new();
                     let commands = &command_list.commands;
                     for c in commands.iter() {
-                        let ct = CommandType::from_i32(c.clone());
+                        let ct = CommandType::from_i32(*c);
                         self.active_commands.push(ct.unwrap());
                     }
 

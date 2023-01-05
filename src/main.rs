@@ -7,7 +7,7 @@ use std::thread;
 
 #[path = "config/config.rs"]
 mod config;
-use crate::config::config::parse_config;
+use crate::config::parse_config;
 
 #[path = "v4l/v4l_capture.rs"]
 mod v4l_capture;
@@ -40,7 +40,7 @@ async fn main() {
             dbg!(&command_list);
             let commands: Vec<CommandType> = rx.recv().unwrap();
             for c in commands.iter() {
-                command_list.push_back(c.clone());
+                command_list.push_back(*c);
             }
 
             let latest_cmd = command_list.pop_front();
