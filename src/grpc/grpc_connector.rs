@@ -1,26 +1,31 @@
-
 use std::time::SystemTime;
-use std::time::Duration;
+use base64;
 
+use prost_types::Timestamp;
 use tonic::transport::Channel;
 use videoconnector::CommandRequest;
 use videoconnector::CommandList;
 
 use crate::config::config::ConfigData;
+use crate::grpc_connector::videoconnector::CommandType;
 use crate::grpc_connector::videoconnector::video_connector_client::VideoConnectorClient;
+
+use self::videoconnector::SourceInfoRequest;
+use self::videoconnector::TransferImageRequest;
 
 pub mod videoconnector {
     tonic::include_proto!("videoconnector");
 }
 
-pub struct Command {
-    server_command: videoconnector::CommandType,
-}
-
 pub struct GRPCConnector {
     config: ConfigData,
-    active_commands: Vec<Command>,
+    pub active_commands: Vec<videoconnector::CommandType>,
     client: Option<VideoConnectorClient<Channel>>,
+}
+
+pub struct ServerMessage {
+    pub command: videoconnector::CommandType,
+    pub content:String,
 }
 
 impl GRPCConnector {
@@ -45,23 +50,66 @@ impl GRPCConnector {
     }
 
     pub async fn load_commands(&mut self) {
-        println!("getting commands from server");
+        println!("loading commands from server");
     
         let hostname = String::from("localhost");
         
-        let now = SystemTime::now();
-        let ts: Duration = now.duration_since(SystemTime::UNIX_EPOCH).expect("");
+        let ts = Timestamp::from(SystemTime::now());
     
-        let req = tonic::Request::new(CommandRequest{connector_hostname:hostname, client_timestamp: ts.as_secs().to_string()});
+        let req = tonic::Request::new(CommandRequest{connector_hostname:hostname, client_timestamp: Some(ts)});
         let command_list: CommandList;
 
         if let Some(ref mut client) = self.client {
             match client.get_command(req).await {
                 Ok(resp) => {
                         command_list =  resp.into_inner();
+                        self.active_commands = Vec::new();
+                        let commands = &command_list.commands;
+                        for c in commands.iter() {
+                            let ct = CommandType::from_i32(c.clone());
+                            self.active_commands.push(ct.unwrap());
+                        }
+                        
                         dbg!(command_list);
                     },
                 Err(e) => println!("Getting commands failed {}", e),
+            };
+        }
+    }
+
+    pub async fn send_to_server(&mut self, server_message:&ServerMessage) {
+        if server_message.command == CommandType::GetImage {
+            self.send_image(&server_message.content).await;
+        }
+        if server_message.command == CommandType::GetSourceInfo {
+            self.send_source_info(&server_message.content).await;
+        }
+    }
+
+    pub async fn send_source_info(&mut self, info:&String) {
+        let ts = Timestamp::from(SystemTime::now());
+        let message = String::from(info);
+        let req = tonic::Request::new(SourceInfoRequest{client_timestamp: Some(ts), source_info: message});
+
+        if let Some(ref mut client) = self.client {
+            match client.deliver_source_info(req).await {
+                Ok(resp) => {dbg!(resp);},
+                Err(e) => println!("Sending source info failed {}", e),
+            };
+        }
+    }
+
+    pub async fn send_image(&mut self, image:&String) {
+        let ts = Timestamp::from(SystemTime::now());
+        let message = String::from(image);
+        let b64_message = base64::encode(&message);
+        println!("Sending image with size {}", &message.len());
+        let req = tonic::Request::new(TransferImageRequest{client_timestamp: Some(ts),camera_id: 1, image: b64_message.into()});
+
+        if let Some(ref mut client) = self.client {
+            match client.transfer_image(req).await {
+                Ok(resp) => {dbg!(resp);},
+                Err(e) => println!("Transfer image failed {}", e),
             };
         }
     }

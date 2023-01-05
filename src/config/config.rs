@@ -23,6 +23,7 @@ pub mod config {
     #[derive(Deserialize, Clone)]
     pub struct Misc {
         pub log_level: String,
+        pub storage_path: String,
     }
 
     #[derive(Deserialize, Clone)]

@@ -9,4 +9,5 @@ default = "record"
 url = "http://127.0.0.1:50051"
 
 [misc]
-log_level = "DEBUG"
+log_level = "INFO"
+storage_path = "/tmp"
