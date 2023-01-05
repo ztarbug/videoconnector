@@ -19,7 +19,8 @@ jobs:
           rustup update
           rustup component add clippy
           rustup install nightly 
-          sudo apt update && apt upgrade -y
+          sudo apt update
+          sudo apt upgrade -y
           sudo apt install -y protobuf-compiler libprotobuf-dev         
 
       - name: Toolchain info
