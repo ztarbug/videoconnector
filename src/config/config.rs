@@ -33,7 +33,6 @@ pub struct ConfigData {
 }
 
 pub fn parse_config(file_path: Option<&String>) -> ConfigData {
-
     let filename: String = match file_path {
         None => get_config_file_location(),
         Some(file_path) => file_path.clone(),
@@ -104,4 +103,3 @@ fn get_config_file_location() -> String {
     println!("couldn't find config file, aborting.");
     exit(1);
 }
-
