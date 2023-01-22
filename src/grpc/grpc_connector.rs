@@ -25,7 +25,7 @@ pub struct GRPCConnector {
 pub struct ServerMessage<T> {
     pub command: videoconnector::CommandType,
     pub content: String,
-    pub binary_content: Option<T>
+    pub binary_content: Option<T>,
 }
 
 impl GRPCConnector {

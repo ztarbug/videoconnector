@@ -60,7 +60,7 @@ async fn main() {
                         let sm = ServerMessage {
                             command: cmd,
                             content: String::from("sdfdsf"),
-                            binary_content: Some(image_bytes)
+                            binary_content: Some(image_bytes),
                         };
                         tx_server_messages.send(sm).unwrap();
                     }
@@ -69,7 +69,7 @@ async fn main() {
                         let sm = ServerMessage {
                             command: cmd,
                             content: info.to_string(),
-                            binary_content: None
+                            binary_content: None,
                         };
                         tx_server_messages.send(sm).unwrap();
                     }

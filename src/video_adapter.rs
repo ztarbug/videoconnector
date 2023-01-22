@@ -1,14 +1,17 @@
 use crate::config::ConfigData;
+use std::fmt;
 
 pub struct SourceInfo {
     pub name: String,
 }
 
-impl SourceInfo {
-    pub fn to_string(&self) -> String {
-        let mut result = String::from("");
-        result.push_str(&self.name);
-        return result;
+impl fmt::Display for SourceInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Write strictly the first element into the supplied output
+        // stream: `f`. Returns `fmt::Result` which indicates whether the
+        // operation succeeded or failed. Note that `write!` uses syntax which
+        // is very similar to `println!`.
+        write!(f, "{}", self.name)
     }
 }
 
