@@ -7,8 +7,10 @@ edition = "2021"
 
 [dependencies]
 v4l = "0.13.1"
+opencv = "0.75.0"
 image = "0.24.5"
 base64 = "0.20.0"
+gethostname = "0.4.1"
 
 futures-executor = "0.3.25"
 tokio = { version = "1.23.0", features = ["full"] }

@@ -1,5 +1,6 @@
 [video]
-src_type = "v4l"
+src_type = "opencv"
+#source = "rtsp://dispatch:dispatch@localhost:8554/axis-media/media.amp?camera=1"
 source = 0
 
 [command]

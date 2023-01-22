@@ -22,9 +22,10 @@ pub struct GRPCConnector {
     client: Option<VideoConnectorClient<Channel>>,
 }
 
-pub struct ServerMessage {
+pub struct ServerMessage<T> {
     pub command: videoconnector::CommandType,
     pub content: String,
+    pub binary_content: Option<T>,
 }
 
 impl GRPCConnector {
@@ -50,7 +51,7 @@ impl GRPCConnector {
     pub async fn load_commands(&mut self) {
         println!("loading commands from server");
 
-        let hostname = String::from("localhost");
+        let hostname = gethostname::gethostname().into_string().unwrap();
 
         let ts = Timestamp::from(SystemTime::now());
 
@@ -78,9 +79,9 @@ impl GRPCConnector {
         }
     }
 
-    pub async fn send_to_server(&mut self, server_message: &ServerMessage) {
+    pub async fn send_to_server(&mut self, server_message: ServerMessage<Vec<u8>>) {
         if server_message.command == CommandType::GetImage {
-            self.send_image(&server_message.content).await;
+            self.send_image(server_message.binary_content).await;
         }
         if server_message.command == CommandType::GetSourceInfo {
             self.send_source_info(&server_message.content).await;
@@ -105,11 +106,12 @@ impl GRPCConnector {
         }
     }
 
-    pub async fn send_image(&mut self, image: &String) {
+    pub async fn send_image(&mut self, i: Option<Vec<u8>>) {
         let ts = Timestamp::from(SystemTime::now());
-        let message = String::from(image);
-        let b64_message = base64::encode(&message);
-        println!("Sending image with size {}", &message.len());
+        //let message = String::from(image);
+        let image_bytes = i.unwrap();
+        let b64_message = base64::encode(&image_bytes);
+        println!("Sending image with size {}", &image_bytes.len());
         let req = tonic::Request::new(TransferImageRequest {
             client_timestamp: Some(ts),
             camera_id: 1,
