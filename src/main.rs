@@ -9,9 +9,12 @@ use std::thread;
 mod config;
 use crate::config::parse_config;
 
-#[path = "v4l/v4l_capture.rs"]
-mod v4l_capture;
-use crate::v4l_capture::V4LDevice;
+#[path = "video_adapter.rs"]
+mod video_adapter;
+
+#[path = "opencv/opencv_capture.rs"]
+mod opencv_capture;
+use crate::opencv_capture::OpencvCapture;
 
 #[path = "grpc/grpc_connector.rs"]
 mod grpc_connector;
@@ -27,7 +30,7 @@ async fn main() {
     let config = parse_config(params.get(1));
     println!("loaded config {}", config.video.source);
 
-    let mut v4l_device = V4LDevice::new(config.clone());
+    let mut opencv = OpencvCapture::new(config.clone());
 
     let (tx, rx) = mpsc::channel();
     let (tx_server_messages, rx_server_messages) = mpsc::channel();
@@ -52,19 +55,21 @@ async fn main() {
                     CommandType::StopAndShutdown => todo!(),
                     CommandType::GetImage => {
                         println!("getting new image");
-                        let image = &v4l_device.capture_image();
-                        let image_string = String::from_utf8_lossy(image);
+                        let image = opencv.get_single_image().unwrap();
+                        let image_bytes = image.as_slice().to_owned();
                         let sm = ServerMessage {
                             command: cmd,
-                            content: image_string.to_string(),
+                            content: String::from("sdfdsf"),
+                            binary_content: Some(image_bytes)
                         };
                         tx_server_messages.send(sm).unwrap();
                     }
                     CommandType::GetSourceInfo => {
-                        let info = v4l_device.print_cam_details();
+                        let info = opencv.get_source_info();
                         let sm = ServerMessage {
                             command: cmd,
-                            content: info,
+                            content: info.to_string(),
+                            binary_content: None
                         };
                         tx_server_messages.send(sm).unwrap();
                     }
@@ -85,7 +90,7 @@ async fn main() {
         tx.send(received_commands).unwrap();
         // check if we need to send stuff back to server
         match rx_server_messages.try_recv() {
-            Ok(rec) => con.send_to_server(&rec).await,
+            Ok(rec) => con.send_to_server(rec).await,
             Err(_) => println!("no messages for server"),
         }
         tokio::time::sleep(Duration::from_millis(500)).await;

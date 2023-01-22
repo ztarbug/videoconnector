@@ -5,7 +5,7 @@ use std::process::exit;
 #[derive(Deserialize, Clone)]
 pub struct Video {
     pub src_type: String,
-    pub source: usize,
+    pub source: i32,
 }
 
 #[derive(Deserialize, Clone)]
