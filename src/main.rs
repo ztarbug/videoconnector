@@ -34,6 +34,12 @@ async fn main() {
 
     let (tx, rx) = mpsc::channel();
     let (tx_server_messages, rx_server_messages) = mpsc::channel();
+    let (tx_shutdown_sender, rx_shutdown_receiver) = mpsc::channel();
+    let (tx_ctrl_send,rx_ctrl_rec) = mpsc::channel();
+
+    ctrlc::set_handler( move || {
+        tx_ctrl_send.send(()).expect("sending ctrlc failed");
+    }).expect("Listening for ctrl+c failed");
 
     thread::spawn(move || {
         let mut command_list: VecDeque<CommandType> = VecDeque::new();
@@ -50,7 +56,10 @@ async fn main() {
             if let Some(cmd) = latest_cmd {
                 match cmd {
                     CommandType::NoNew => println!("No new command - do nothing"),
-                    CommandType::Stop => todo!(),
+                    CommandType::Stop => {
+                        tx_shutdown_sender.send(()).unwrap();
+                        break;
+                    },
                     CommandType::Resume => todo!(),
                     CommandType::StopAndShutdown => todo!(),
                     CommandType::GetImage => {
@@ -76,12 +85,21 @@ async fn main() {
                 }
             }
 
-            thread::sleep(Duration::from_millis(300));
+            thread::sleep(Duration::from_millis(200));
         }
     });
 
     let mut grpc_connector: GRPCConnector = GRPCConnector::new(config.clone());
     grpc_connector.setup_client().await;
+    match grpc_connector.register_client().await {
+        Ok(r) => {
+            println!("Client is registered, start receiving {}", r);
+        },
+        Err(e) => {
+            println!("registering client failed {}", e);
+            todo!();
+        }
+    };
 
     loop {
         let con = &mut grpc_connector;
@@ -92,7 +110,26 @@ async fn main() {
         match rx_server_messages.try_recv() {
             Ok(rec) => con.send_to_server(rec).await,
             Err(_) => println!("no messages for server"),
+        };
+
+        match rx_shutdown_receiver.try_recv() {
+            Ok(()) => {
+                con.unregister_client().await;
+                println!("Shutting down client orderly by command ");
+                break;
+            },
+            Err(_) => {}
         }
-        tokio::time::sleep(Duration::from_millis(500)).await;
+
+        match rx_ctrl_rec.try_recv() {
+            Ok(()) => {
+                con.unregister_client().await;
+                println!("Shutting down client orderly by ctrlc");
+                break;
+            },
+            Err(_) => {}
+        }
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
     }
 }

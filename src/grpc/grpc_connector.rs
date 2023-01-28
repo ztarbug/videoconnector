@@ -6,6 +6,8 @@ use videoconnector::CommandList;
 use videoconnector::CommandRequest;
 
 use crate::config::ConfigData;
+use crate::grpc_connector::videoconnector::RegisterRequest;
+use crate::grpc_connector::videoconnector::UnRegisterRequest;
 use crate::grpc_connector::videoconnector::video_connector_client::VideoConnectorClient;
 use crate::grpc_connector::videoconnector::CommandType;
 
@@ -46,6 +48,40 @@ impl GRPCConnector {
             .expect("couldn't build client stub");
 
         self.client = Some(tmp_client);
+    }
+
+    pub async fn register_client(&mut self) -> Result<bool, &'static str> {
+        println!("Registering Client");
+
+        if let Some(ref mut client) = self.client {
+            match client.register_client(RegisterRequest{}).await {
+                Ok(_resp) => {
+                    println!("registration successful");
+                    Ok(true)
+                },
+                Err(e) => {
+                    println!("Registering Client didn't work, exiting {}", e);
+                    Err("Registering Client didn't work")
+                }
+            }
+        } else {
+            Err("No working client. Registering Client didn't work")
+        }
+    }
+
+    pub async fn unregister_client(&mut self) {
+        println!("Unregistering Client");
+
+        if let Some(ref mut client) = self.client {
+            match client.un_register_client(UnRegisterRequest{}).await {
+                Ok(_resp) => {
+                    println!("unregistration successful");
+                },
+                Err(e) => {
+                    println!("Registering Client didn't work, exiting {}", e);
+                }
+            }
+        }
     }
 
     pub async fn load_commands(&mut self) {

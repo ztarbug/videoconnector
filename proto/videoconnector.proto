@@ -4,6 +4,22 @@ package videoconnector;
 
 import "google/protobuf/timestamp.proto";
 
+message RegisterRequest {
+
+}
+
+message RegisterResponse {
+
+}
+
+message UnRegisterRequest {
+    
+}
+
+message UnRegisterResponse {
+    
+}
+
 enum CommandType {
     NoNew = 0;
     Stop = 1;
@@ -40,6 +56,12 @@ message SourceInfoRequest {
 
 //CameraConnector
 service VideoConnector {
+
+    // Method to register a new client
+    rpc RegisterClient(RegisterRequest) returns (RegisterResponse);
+
+    // Method to unregister a client
+    rpc UnRegisterClient(UnRegisterRequest) returns (UnRegisterResponse);
 
     // get commands for connector
     rpc GetCommand(CommandRequest) returns (CommandList);
