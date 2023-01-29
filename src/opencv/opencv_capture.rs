@@ -36,7 +36,7 @@ impl OpencvCapture {
                 Some(jpg_buf)
             }
             Err(e) => {
-                println!("Converting to image didn't work: {}", e);
+                println!("Converting to image didn't work: {e}");
                 None
             }
         }

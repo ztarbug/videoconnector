@@ -11,6 +11,7 @@ opencv = "0.75.0"
 image = "0.24.5"
 base64 = "0.20.0"
 gethostname = "0.4.1"
+ctrlc = "3.2.4"
 
 futures-executor = "0.3.25"
 tokio = { version = "1.23.0", features = ["full"] }

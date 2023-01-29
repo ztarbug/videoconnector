@@ -3,6 +3,7 @@ use std::env;
 use tokio::time::Duration;
 
 use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 #[path = "config/config.rs"]
@@ -32,27 +33,43 @@ async fn main() {
 
     let mut opencv = OpencvCapture::new(config.clone());
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx): (Sender<Vec<CommandType>>, Receiver<Vec<CommandType>>) = mpsc::channel();
     let (tx_server_messages, rx_server_messages) = mpsc::channel();
+    let (tx_shutdown_sender, rx_shutdown_receiver) = mpsc::channel();
+    let (tx_ctrl_send, rx_ctrl_rec) = mpsc::channel();
+
+    ctrlc::set_handler(move || {
+        tx_ctrl_send.send(()).expect("sending ctrlc failed");
+    })
+    .expect("Listening for ctrl+c failed");
 
     thread::spawn(move || {
         let mut command_list: VecDeque<CommandType> = VecDeque::new();
 
         loop {
-            println!("next loop in cmd execution thread");
-            dbg!(&command_list);
-            let commands: Vec<CommandType> = rx.recv().unwrap();
-            for c in commands.iter() {
-                command_list.push_back(*c);
+            if command_list.len() > 1 {
+                dbg!(&command_list);
+            }
+
+            if let Ok(commands) = rx.try_recv() {
+                for c in commands.iter() {
+                    command_list.push_back(*c);
+                }
             }
 
             let latest_cmd = command_list.pop_front();
             if let Some(cmd) = latest_cmd {
                 match cmd {
                     CommandType::NoNew => println!("No new command - do nothing"),
-                    CommandType::Stop => todo!(),
+                    CommandType::Stop => {
+                        tx_shutdown_sender.send(()).unwrap();
+                        break;
+                    }
                     CommandType::Resume => todo!(),
-                    CommandType::StopAndShutdown => todo!(),
+                    CommandType::StopAndShutdown => {
+                        tx_shutdown_sender.send(()).unwrap();
+                        break;
+                    }
                     CommandType::GetImage => {
                         println!("getting new image");
                         let image = opencv.get_single_image().unwrap();
@@ -76,23 +93,50 @@ async fn main() {
                 }
             }
 
-            thread::sleep(Duration::from_millis(300));
+            thread::sleep(Duration::from_millis(200));
         }
     });
 
     let mut grpc_connector: GRPCConnector = GRPCConnector::new(config.clone());
     grpc_connector.setup_client().await;
+    match grpc_connector.register_client().await {
+        Ok(r) => {
+            println!("Client is registered, start receiving {r}");
+        }
+        Err(e) => {
+            println!("registering client failed {e}");
+            todo!();
+        }
+    };
 
     loop {
         let con = &mut grpc_connector;
         con.load_commands().await;
         let received_commands = con.active_commands.clone();
-        tx.send(received_commands).unwrap();
-        // check if we need to send stuff back to server
-        match rx_server_messages.try_recv() {
-            Ok(rec) => con.send_to_server(rec).await,
-            Err(_) => println!("no messages for server"),
+        if received_commands.len() > 1 {
+            dbg!(&received_commands);
         }
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        if let Err(e) = tx.send(received_commands) {
+            println!("execution thread no longer listening. Stopping: {e}");
+        }
+
+        // check if we need to send stuff back to server
+        if let Ok(rec) = rx_server_messages.try_recv() {
+            con.send_to_server(rec).await;
+        };
+
+        if let Ok(()) = rx_shutdown_receiver.try_recv() {
+            con.unregister_client().await;
+            println!("Shutting down client orderly by command ");
+            break;
+        }
+
+        if let Ok(()) = rx_ctrl_rec.try_recv() {
+            con.unregister_client().await;
+            println!("Shutting down client orderly by ctrlc");
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
     }
 }

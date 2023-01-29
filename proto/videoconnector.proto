@@ -4,6 +4,23 @@ package videoconnector;
 
 import "google/protobuf/timestamp.proto";
 
+message RegisterRequest {
+    string hostname = 1;
+}
+
+message RegisterResponse {
+    int32 id = 1;
+}
+
+message UnRegisterRequest {
+    string hostname = 1;
+    int32 client_id = 2;
+}
+
+message UnRegisterResponse {
+    
+}
+
 enum CommandType {
     NoNew = 0;
     Stop = 1;
@@ -16,6 +33,7 @@ enum CommandType {
 message CommandRequest {
     google.protobuf.Timestamp clientTimestamp = 1;
     string connectorHostname = 2;
+    int32 client_id = 3;
 }
 
 message CommandList {
@@ -25,7 +43,7 @@ message CommandList {
 
 message TransferImageRequest {
     google.protobuf.Timestamp clientTimestamp = 1;
-    int64 camera_id = 2;
+    int32 client_id = 2;
     bytes image = 3;
 }
 
@@ -40,6 +58,12 @@ message SourceInfoRequest {
 
 //CameraConnector
 service VideoConnector {
+
+    // Method to register a new client
+    rpc RegisterClient(RegisterRequest) returns (RegisterResponse);
+
+    // Method to unregister a client
+    rpc UnRegisterClient(UnRegisterRequest) returns (UnRegisterResponse);
 
     // get commands for connector
     rpc GetCommand(CommandRequest) returns (CommandList);
