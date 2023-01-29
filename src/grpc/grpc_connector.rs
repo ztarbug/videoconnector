@@ -108,7 +108,6 @@ impl GRPCConnector {
     }
 
     pub async fn load_commands(&mut self) {
-        println!("loading commands from server");
 
         let hostname = gethostname::gethostname().into_string().unwrap();
         let ts = Timestamp::from(SystemTime::now());
@@ -131,8 +130,9 @@ impl GRPCConnector {
                         let ct = CommandType::from_i32(*c);
                         self.active_commands.push(ct.unwrap());
                     }
-
-                    dbg!(command_list);
+                    if command_list.commands.len() > 1 {
+                        dbg!(&command_list);
+                    }
                 }
                 Err(e) => println!("Getting commands failed {}", e),
             };
