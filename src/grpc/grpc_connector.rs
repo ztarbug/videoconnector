@@ -60,7 +60,6 @@ impl GRPCConnector {
     pub async fn register_client(&mut self) -> Result<bool, &'static str> {
         println!("Registering Client");
 
-
         if let Some(ref mut client) = self.client {
             match client
                 .register_client(RegisterRequest {
@@ -70,14 +69,9 @@ impl GRPCConnector {
             {
                 Ok(resp) => {
                     let id = resp.into_inner().id;
-                    println!(
-                        "registration successful got server id {}",
-                        id
-                    );
+                    println!("registration successful got server id {}", id);
 
-                    self.my_connection_data = Some(ServerConnectionData {
-                        my_client_id: id
-                    });
+                    self.my_connection_data = Some(ServerConnectionData { my_client_id: id });
 
                     Ok(true)
                 }
@@ -123,7 +117,7 @@ impl GRPCConnector {
         let req = tonic::Request::new(CommandRequest {
             connector_hostname: hostname,
             client_timestamp: Some(ts),
-            client_id: id
+            client_id: id,
         });
         let command_list: CommandList;
 
