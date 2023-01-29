@@ -46,7 +46,7 @@ pub fn parse_config(file_path: Option<&String>) -> ConfigData {
         // Handle the `error` case.
         Err(_) => {
             // Write `msg` to `stderr`.
-            eprintln!("Could not read file `{}`", filename);
+            eprintln!("Could not read file `{filename}`");
             // Exit the program with exit code `1`.
             exit(1);
         }
@@ -58,7 +58,7 @@ pub fn parse_config(file_path: Option<&String>) -> ConfigData {
         // Handle the `error` case.
         Err(_) => {
             // Write `msg` to `stderr`.
-            eprintln!("Unable to load data from `{}`", filename);
+            eprintln!("Unable to load data from `{filename}`");
             // Exit the program with exit code `1`.
             exit(1);
         }

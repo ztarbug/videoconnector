@@ -69,14 +69,14 @@ impl GRPCConnector {
             {
                 Ok(resp) => {
                     let id = resp.into_inner().id;
-                    println!("registration successful got server id {}", id);
+                    println!("registration successful got server id {id}");
 
                     self.my_connection_data = Some(ServerConnectionData { my_client_id: id });
 
                     Ok(true)
                 }
                 Err(e) => {
-                    println!("Registering Client didn't work, exiting {}", e);
+                    println!("Registering Client didn't work, exiting {e}");
                     Err("Registering Client didn't work")
                 }
             }
@@ -101,14 +101,13 @@ impl GRPCConnector {
                     println!("unregistration successful");
                 }
                 Err(e) => {
-                    println!("Registering Client didn't work, exiting {}", e);
+                    println!("Registering Client didn't work, exiting {e}");
                 }
             }
         }
     }
 
     pub async fn load_commands(&mut self) {
-
         let hostname = gethostname::gethostname().into_string().unwrap();
         let ts = Timestamp::from(SystemTime::now());
         let id = self.my_connection_data.clone().unwrap().my_client_id;
@@ -134,7 +133,7 @@ impl GRPCConnector {
                         dbg!(&command_list);
                     }
                 }
-                Err(e) => println!("Getting commands failed {}", e),
+                Err(e) => println!("Getting commands failed {e}"),
             };
         }
     }
@@ -161,7 +160,7 @@ impl GRPCConnector {
                 Ok(resp) => {
                     dbg!(resp);
                 }
-                Err(e) => println!("Sending source info failed {}", e),
+                Err(e) => println!("Sending source info failed {e}"),
             };
         }
     }
@@ -184,7 +183,7 @@ impl GRPCConnector {
                 Ok(resp) => {
                     dbg!(resp);
                 }
-                Err(e) => println!("Transfer image failed {}", e),
+                Err(e) => println!("Transfer image failed {e}"),
             };
         }
     }

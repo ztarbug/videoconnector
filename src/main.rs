@@ -33,7 +33,7 @@ async fn main() {
 
     let mut opencv = OpencvCapture::new(config.clone());
 
-    let (tx, rx): (Sender< Vec<CommandType>>, Receiver<Vec<CommandType>>) = mpsc::channel();
+    let (tx, rx): (Sender<Vec<CommandType>>, Receiver<Vec<CommandType>>) = mpsc::channel();
     let (tx_server_messages, rx_server_messages) = mpsc::channel();
     let (tx_shutdown_sender, rx_shutdown_receiver) = mpsc::channel();
     let (tx_ctrl_send, rx_ctrl_rec) = mpsc::channel();
@@ -51,7 +51,7 @@ async fn main() {
                 dbg!(&command_list);
             }
 
-            if let Ok(commands) = rx.try_recv() {                
+            if let Ok(commands) = rx.try_recv() {
                 for c in commands.iter() {
                     command_list.push_back(*c);
                 }
@@ -68,8 +68,8 @@ async fn main() {
                     CommandType::Resume => todo!(),
                     CommandType::StopAndShutdown => {
                         tx_shutdown_sender.send(()).unwrap();
-                        break;                        
-                    },
+                        break;
+                    }
                     CommandType::GetImage => {
                         println!("getting new image");
                         let image = opencv.get_single_image().unwrap();
@@ -101,10 +101,10 @@ async fn main() {
     grpc_connector.setup_client().await;
     match grpc_connector.register_client().await {
         Ok(r) => {
-            println!("Client is registered, start receiving {}", r);
+            println!("Client is registered, start receiving {r}");
         }
         Err(e) => {
-            println!("registering client failed {}", e);
+            println!("registering client failed {e}");
             todo!();
         }
     };
@@ -122,7 +122,7 @@ async fn main() {
 
         // check if we need to send stuff back to server
         if let Ok(rec) = rx_server_messages.try_recv() {
-             con.send_to_server(rec).await;
+            con.send_to_server(rec).await;
         };
 
         if let Ok(()) = rx_shutdown_receiver.try_recv() {
