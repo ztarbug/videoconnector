@@ -6,10 +6,10 @@ use videoconnector::CommandList;
 use videoconnector::CommandRequest;
 
 use crate::config::ConfigData;
-use crate::grpc_connector::videoconnector::RegisterRequest;
-use crate::grpc_connector::videoconnector::UnRegisterRequest;
 use crate::grpc_connector::videoconnector::video_connector_client::VideoConnectorClient;
 use crate::grpc_connector::videoconnector::CommandType;
+use crate::grpc_connector::videoconnector::RegisterRequest;
+use crate::grpc_connector::videoconnector::UnRegisterRequest;
 
 use self::videoconnector::SourceInfoRequest;
 use self::videoconnector::TransferImageRequest;
@@ -18,10 +18,16 @@ pub mod videoconnector {
     tonic::include_proto!("videoconnector");
 }
 
+#[derive(Clone)]
+struct ServerConnectionData {
+    pub my_client_id: i32,
+}
+
 pub struct GRPCConnector {
     config: ConfigData,
     pub active_commands: Vec<videoconnector::CommandType>,
     client: Option<VideoConnectorClient<Channel>>,
+    my_connection_data: Option<ServerConnectionData>,
 }
 
 pub struct ServerMessage<T> {
@@ -36,6 +42,7 @@ impl GRPCConnector {
             config: conf,
             active_commands: Vec::new(),
             client: None,
+            my_connection_data: None,
         }
     }
 
@@ -53,12 +60,27 @@ impl GRPCConnector {
     pub async fn register_client(&mut self) -> Result<bool, &'static str> {
         println!("Registering Client");
 
+
         if let Some(ref mut client) = self.client {
-            match client.register_client(RegisterRequest{}).await {
-                Ok(_resp) => {
-                    println!("registration successful");
+            match client
+                .register_client(RegisterRequest {
+                    hostname: gethostname::gethostname().into_string().unwrap(),
+                })
+                .await
+            {
+                Ok(resp) => {
+                    let id = resp.into_inner().id;
+                    println!(
+                        "registration successful got server id {}",
+                        id
+                    );
+
+                    self.my_connection_data = Some(ServerConnectionData {
+                        my_client_id: id
+                    });
+
                     Ok(true)
-                },
+                }
                 Err(e) => {
                     println!("Registering Client didn't work, exiting {}", e);
                     Err("Registering Client didn't work")
@@ -71,12 +93,19 @@ impl GRPCConnector {
 
     pub async fn unregister_client(&mut self) {
         println!("Unregistering Client");
+        let id = self.my_connection_data.clone().unwrap().my_client_id;
 
         if let Some(ref mut client) = self.client {
-            match client.un_register_client(UnRegisterRequest{}).await {
+            match client
+                .un_register_client(UnRegisterRequest {
+                    hostname: gethostname::gethostname().into_string().unwrap(),
+                    client_id: id,
+                })
+                .await
+            {
                 Ok(_resp) => {
                     println!("unregistration successful");
-                },
+                }
                 Err(e) => {
                     println!("Registering Client didn't work, exiting {}", e);
                 }
@@ -88,12 +117,13 @@ impl GRPCConnector {
         println!("loading commands from server");
 
         let hostname = gethostname::gethostname().into_string().unwrap();
-
         let ts = Timestamp::from(SystemTime::now());
+        let id = self.my_connection_data.clone().unwrap().my_client_id;
 
         let req = tonic::Request::new(CommandRequest {
             connector_hostname: hostname,
             client_timestamp: Some(ts),
+            client_id: id
         });
         let command_list: CommandList;
 
@@ -143,14 +173,15 @@ impl GRPCConnector {
     }
 
     pub async fn send_image(&mut self, i: Option<Vec<u8>>) {
+        let id = self.my_connection_data.clone().unwrap().my_client_id;
         let ts = Timestamp::from(SystemTime::now());
-        //let message = String::from(image);
         let image_bytes = i.unwrap();
         let b64_message = base64::encode(&image_bytes);
         println!("Sending image with size {}", &image_bytes.len());
+
         let req = tonic::Request::new(TransferImageRequest {
             client_timestamp: Some(ts),
-            camera_id: 1,
+            client_id: id,
             image: b64_message.into(),
         });
 

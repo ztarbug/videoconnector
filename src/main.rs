@@ -35,11 +35,12 @@ async fn main() {
     let (tx, rx) = mpsc::channel();
     let (tx_server_messages, rx_server_messages) = mpsc::channel();
     let (tx_shutdown_sender, rx_shutdown_receiver) = mpsc::channel();
-    let (tx_ctrl_send,rx_ctrl_rec) = mpsc::channel();
+    let (tx_ctrl_send, rx_ctrl_rec) = mpsc::channel();
 
-    ctrlc::set_handler( move || {
+    ctrlc::set_handler(move || {
         tx_ctrl_send.send(()).expect("sending ctrlc failed");
-    }).expect("Listening for ctrl+c failed");
+    })
+    .expect("Listening for ctrl+c failed");
 
     thread::spawn(move || {
         let mut command_list: VecDeque<CommandType> = VecDeque::new();
@@ -59,7 +60,7 @@ async fn main() {
                     CommandType::Stop => {
                         tx_shutdown_sender.send(()).unwrap();
                         break;
-                    },
+                    }
                     CommandType::Resume => todo!(),
                     CommandType::StopAndShutdown => todo!(),
                     CommandType::GetImage => {
@@ -94,7 +95,7 @@ async fn main() {
     match grpc_connector.register_client().await {
         Ok(r) => {
             println!("Client is registered, start receiving {}", r);
-        },
+        }
         Err(e) => {
             println!("registering client failed {}", e);
             todo!();
@@ -112,22 +113,16 @@ async fn main() {
             Err(_) => println!("no messages for server"),
         };
 
-        match rx_shutdown_receiver.try_recv() {
-            Ok(()) => {
-                con.unregister_client().await;
-                println!("Shutting down client orderly by command ");
-                break;
-            },
-            Err(_) => {}
+        if let Ok(()) = rx_shutdown_receiver.try_recv() {
+            con.unregister_client().await;
+            println!("Shutting down client orderly by command ");
+            break;
         }
 
-        match rx_ctrl_rec.try_recv() {
-            Ok(()) => {
-                con.unregister_client().await;
-                println!("Shutting down client orderly by ctrlc");
-                break;
-            },
-            Err(_) => {}
+        if let Ok(()) = rx_ctrl_rec.try_recv() {
+            con.unregister_client().await;
+            println!("Shutting down client orderly by ctrlc");
+            break;
         }
 
         tokio::time::sleep(Duration::from_millis(200)).await;
